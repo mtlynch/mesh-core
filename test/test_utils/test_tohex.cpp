@@ -3,12 +3,14 @@
 
 using namespace mesh;
 
+#define HEX_BUFFER_SIZE(input) (sizeof(input) * 2 + 1)
+
 // Test: Convert single byte to hex
 TEST(UtilsToHex, SingleByte) {
     uint8_t input[] = {0xAB};
-    char output[3];  // 2 hex chars + null terminator
+    char output[HEX_BUFFER_SIZE(input)];
 
-    Utils::toHex(output, input, 1);
+    Utils::toHex(output, input, sizeof(input));
 
     EXPECT_STREQ("AB", output);
 }
@@ -16,9 +18,9 @@ TEST(UtilsToHex, SingleByte) {
 // Test: Convert multiple bytes to hex
 TEST(UtilsToHex, MultipleBytes) {
     uint8_t input[] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF};
-    char output[17];  // 16 hex chars + null terminator
+    char output[HEX_BUFFER_SIZE(input)];
 
-    Utils::toHex(output, input, 8);
+    Utils::toHex(output, input, sizeof(input));
 
     EXPECT_STREQ("0123456789ABCDEF", output);
 }
@@ -26,9 +28,9 @@ TEST(UtilsToHex, MultipleBytes) {
 // Test: Convert zero byte
 TEST(UtilsToHex, ZeroByte) {
     uint8_t input[] = {0x00};
-    char output[3];
+    char output[HEX_BUFFER_SIZE(input)];
 
-    Utils::toHex(output, input, 1);
+    Utils::toHex(output, input, sizeof(input));
 
     EXPECT_STREQ("00", output);
 }
@@ -36,9 +38,9 @@ TEST(UtilsToHex, ZeroByte) {
 // Test: Convert max byte value
 TEST(UtilsToHex, MaxByte) {
     uint8_t input[] = {0xFF};
-    char output[3];
+    char output[HEX_BUFFER_SIZE(input)];
 
-    Utils::toHex(output, input, 1);
+    Utils::toHex(output, input, sizeof(input));
 
     EXPECT_STREQ("FF", output);
 }
@@ -57,9 +59,9 @@ TEST(UtilsToHex, EmptyInput) {
 // Test: Verify null termination
 TEST(UtilsToHex, NullTermination) {
     uint8_t input[] = {0x12, 0x34};
-    char output[10];
+    char output[HEX_BUFFER_SIZE(input)];
 
-    Utils::toHex(output, input, 2);
+    Utils::toHex(output, input, sizeof(input));
 
     // Check that position 4 (after "1234") is null-terminated
     EXPECT_EQ('\0', output[4]);
@@ -68,9 +70,9 @@ TEST(UtilsToHex, NullTermination) {
 // Test: Convert bytes with low nibbles
 TEST(UtilsToHex, LowNibbles) {
     uint8_t input[] = {0x0F, 0xF0};
-    char output[5];
+    char output[HEX_BUFFER_SIZE(input)];
 
-    Utils::toHex(output, input, 2);
+    Utils::toHex(output, input, sizeof(input));
 
     EXPECT_STREQ("0FF0", output);
 }
@@ -78,9 +80,9 @@ TEST(UtilsToHex, LowNibbles) {
 // Test: Verify uppercase output
 TEST(UtilsToHex, Uppercase) {
     uint8_t input[] = {0xAB, 0xCD, 0xEF};
-    char output[7];
+    char output[HEX_BUFFER_SIZE(input)];
 
-    Utils::toHex(output, input, 3);
+    Utils::toHex(output, input, sizeof(input));
 
     // Verify all hex digits A-F are uppercase
     EXPECT_STREQ("ABCDEF", output);
@@ -95,9 +97,9 @@ TEST(UtilsToHex, Uppercase) {
 // Test: Mixed values
 TEST(UtilsToHex, MixedValues) {
     uint8_t input[] = {0x00, 0x10, 0xA5, 0xFF};
-    char output[9];
+    char output[HEX_BUFFER_SIZE(input)];
 
-    Utils::toHex(output, input, 4);
+    Utils::toHex(output, input, sizeof(input));
 
     EXPECT_STREQ("0010A5FF", output);
 }
@@ -108,9 +110,9 @@ TEST(UtilsToHex, LongerSequence) {
     for (int i = 0; i < 16; i++) {
         input[i] = i * 16 + i;  // 0x00, 0x11, 0x22, ..., 0xFF
     }
-    char output[33];
+    char output[HEX_BUFFER_SIZE(input)];
 
-    Utils::toHex(output, input, 16);
+    Utils::toHex(output, input, sizeof(input));
 
     EXPECT_STREQ("00112233445566778899AABBCCDDEEFF", output);
 }
