@@ -2,10 +2,6 @@
 #include <AES.h>
 #include <SHA256.h>
 
-#ifdef ARDUINO
-  #include <Arduino.h>
-#endif
-
 namespace mesh {
 
 uint32_t RNG::nextInt(uint32_t _min, uint32_t _max) {
@@ -97,15 +93,6 @@ void Utils::toHex(char* dest, const uint8_t* src, size_t len) {
     len--;
   }
   *dest = 0;
-}
-
-void Utils::printHex(Stream& s, const uint8_t* src, size_t len) {
-  while (len > 0) {
-    uint8_t b = *src++;
-    s.print(hex_chars[b >> 4]);
-    s.print(hex_chars[b & 0x0F]);
-    len--;
-  }
 }
 
 static uint8_t hexVal(char c) {

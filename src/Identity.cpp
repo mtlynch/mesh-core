@@ -1,4 +1,5 @@
 #include "Identity.h"
+#include "helpers/ArduinoUtils.h"
 #include <string.h>
 #define ED25519_NO_SEED  1
 #include <ed_25519.h>
@@ -32,7 +33,7 @@ bool Identity::writeTo(Stream& s) const {
 }
 
 void Identity::printTo(Stream& s) const {
-  Utils::printHex(s, pub_key, PUB_KEY_SIZE);
+  ArduinoUtils::printHex(s, pub_key, PUB_KEY_SIZE);
 }
 
 LocalIdentity::LocalIdentity() {
@@ -61,8 +62,8 @@ bool LocalIdentity::writeTo(Stream& s) const {
 }
 
 void LocalIdentity::printTo(Stream& s) const {
-  s.print("pub_key: "); Utils::printHex(s, pub_key, PUB_KEY_SIZE); s.println();
-  s.print("prv_key: "); Utils::printHex(s, prv_key, PRV_KEY_SIZE); s.println();
+  s.print("pub_key: "); ArduinoUtils::printHex(s, pub_key, PUB_KEY_SIZE); s.println();
+  s.print("prv_key: "); ArduinoUtils::printHex(s, prv_key, PRV_KEY_SIZE); s.println();
 }
 
 size_t LocalIdentity::writeTo(uint8_t* dest, size_t max_len) {

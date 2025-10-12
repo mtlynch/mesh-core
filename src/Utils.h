@@ -1,7 +1,6 @@
 #pragma once
 
 #include <MeshCore.h>
-#include <Stream.h>
 #include <string.h>
 
 namespace mesh {
@@ -65,11 +64,6 @@ public:
    * \returns  true if successful
   */
   static bool fromHex(uint8_t* dest, int dest_size, const char *src_hex);
-
-  /**
-   * \brief  Prints the hexadecimal representation of 'src' bytes of given length, to Stream 's'.
-  */
-  static void printHex(Stream& s, const uint8_t* src, size_t len);
 
   /**
    * \brief  parse 'text' into parts separated by 'separator' char.
