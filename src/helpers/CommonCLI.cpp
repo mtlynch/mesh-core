@@ -4,6 +4,52 @@
 #include "AdvertDataHelpers.h"
 #include <RTClib.h>
 
+// Packed struct matching the exact binary file format for preferences
+// This must match the historical file layout byte-for-byte for backwards compatibility
+struct __attribute__((packed)) NodePrefsFile {
+  float airtime_factor;           // offset 0
+  char node_name[32];             // offset 4
+  uint8_t _pad1[4];               // offset 36
+  double node_lat;                // offset 40
+  double node_lon;                // offset 48
+  char password[16];              // offset 56
+  float freq;                     // offset 72
+  uint8_t tx_power_dbm;           // offset 76
+  uint8_t disable_fwd;            // offset 77
+  uint8_t advert_interval;        // offset 78
+  uint8_t _pad2;                  // offset 79 (was 'unused')
+  float rx_delay_base;            // offset 80
+  float tx_delay_factor;          // offset 84
+  char guest_password[16];        // offset 88
+  float direct_tx_delay_factor;   // offset 104
+  uint8_t _pad3[4];               // offset 108
+  uint8_t sf;                     // offset 112
+  uint8_t cr;                     // offset 113
+  uint8_t allow_read_only;        // offset 114
+  uint8_t multi_acks;             // offset 115
+  float bw;                       // offset 116
+  uint8_t agc_reset_interval;     // offset 120
+  uint8_t _pad4[3];               // offset 121
+  uint8_t flood_max;              // offset 124
+  uint8_t flood_advert_interval;  // offset 125
+  uint8_t interference_threshold; // offset 126
+  uint8_t bridge_enabled;         // offset 127
+  uint16_t bridge_delay;          // offset 128
+  uint8_t bridge_pkt_src;         // offset 130
+  uint32_t bridge_baud;           // offset 131
+  uint8_t bridge_channel;         // offset 135
+  char bridge_secret[16];         // offset 136
+  uint8_t _pad5[4];               // offset 152
+  uint8_t gps_enabled;            // offset 156
+  uint32_t gps_interval;          // offset 157
+  uint8_t advert_loc_policy;      // offset 161
+  uint32_t discovery_mod_timestamp; // offset 162
+  float adc_multiplier;           // offset 166
+  // total: 170 bytes
+};
+
+static_assert(sizeof(NodePrefsFile) == 170, "NodePrefsFile size mismatch - file format compatibility broken!");
+
 // Believe it or not, this std C function is busted on some platforms!
 static uint32_t _atoi(const char* sp) {
   uint32_t n = 0;
@@ -31,47 +77,44 @@ void CommonCLI::loadPrefsInt(FILESYSTEM* fs, const char* filename) {
   File file = fs->open(filename);
 #endif
   if (file) {
-    uint8_t pad[8];
+    // Read entire file-format struct in one operation
+    NodePrefsFile fp = {};
+    file.read((uint8_t*)&fp, sizeof(fp));
 
-    file.read((uint8_t *)&_prefs->airtime_factor, sizeof(_prefs->airtime_factor));    // 0
-    file.read((uint8_t *)&_prefs->node_name, sizeof(_prefs->node_name));              // 4
-    file.read(pad, 4);                                                                // 36
-    file.read((uint8_t *)&_prefs->node_lat, sizeof(_prefs->node_lat));                // 40
-    file.read((uint8_t *)&_prefs->node_lon, sizeof(_prefs->node_lon));                // 48
-    file.read((uint8_t *)&_prefs->password[0], sizeof(_prefs->password));             // 56
-    file.read((uint8_t *)&_prefs->freq, sizeof(_prefs->freq));                        // 72
-    file.read((uint8_t *)&_prefs->tx_power_dbm, sizeof(_prefs->tx_power_dbm));        // 76
-    file.read((uint8_t *)&_prefs->disable_fwd, sizeof(_prefs->disable_fwd));          // 77
-    file.read((uint8_t *)&_prefs->advert_interval, sizeof(_prefs->advert_interval));  // 78
-    file.read((uint8_t *)pad, 1);                                                     // 79  was 'unused'
-    file.read((uint8_t *)&_prefs->rx_delay_base, sizeof(_prefs->rx_delay_base));      // 80
-    file.read((uint8_t *)&_prefs->tx_delay_factor, sizeof(_prefs->tx_delay_factor));  // 84
-    file.read((uint8_t *)&_prefs->guest_password[0], sizeof(_prefs->guest_password)); // 88
-    file.read((uint8_t *)&_prefs->direct_tx_delay_factor, sizeof(_prefs->direct_tx_delay_factor)); // 104
-    file.read(pad, 4);                                                                             // 108
-    file.read((uint8_t *)&_prefs->sf, sizeof(_prefs->sf));                                         // 112
-    file.read((uint8_t *)&_prefs->cr, sizeof(_prefs->cr));                                         // 113
-    file.read((uint8_t *)&_prefs->allow_read_only, sizeof(_prefs->allow_read_only));               // 114
-    file.read((uint8_t *)&_prefs->multi_acks, sizeof(_prefs->multi_acks));                         // 115
-    file.read((uint8_t *)&_prefs->bw, sizeof(_prefs->bw));                                         // 116
-    file.read((uint8_t *)&_prefs->agc_reset_interval, sizeof(_prefs->agc_reset_interval));         // 120
-    file.read(pad, 3);                                                                             // 121
-    file.read((uint8_t *)&_prefs->flood_max, sizeof(_prefs->flood_max));                           // 124
-    file.read((uint8_t *)&_prefs->flood_advert_interval, sizeof(_prefs->flood_advert_interval));   // 125
-    file.read((uint8_t *)&_prefs->interference_threshold, sizeof(_prefs->interference_threshold)); // 126
-    file.read((uint8_t *)&_prefs->bridge_enabled, sizeof(_prefs->bridge_enabled));                 // 127
-    file.read((uint8_t *)&_prefs->bridge_delay, sizeof(_prefs->bridge_delay));                     // 128
-    file.read((uint8_t *)&_prefs->bridge_pkt_src, sizeof(_prefs->bridge_pkt_src));                 // 130
-    file.read((uint8_t *)&_prefs->bridge_baud, sizeof(_prefs->bridge_baud));                       // 131
-    file.read((uint8_t *)&_prefs->bridge_channel, sizeof(_prefs->bridge_channel));                 // 135
-    file.read((uint8_t *)&_prefs->bridge_secret, sizeof(_prefs->bridge_secret));                   // 136
-    file.read(pad, 4);                                                                             // 152
-    file.read((uint8_t *)&_prefs->gps_enabled, sizeof(_prefs->gps_enabled));                       // 156
-    file.read((uint8_t *)&_prefs->gps_interval, sizeof(_prefs->gps_interval));                     // 157
-    file.read((uint8_t *)&_prefs->advert_loc_policy, sizeof (_prefs->advert_loc_policy));          // 161
-    file.read((uint8_t *)&_prefs->discovery_mod_timestamp, sizeof(_prefs->discovery_mod_timestamp)); // 162
-    file.read((uint8_t *)&_prefs->adc_multiplier, sizeof(_prefs->adc_multiplier)); // 166
-    // 170
+    // Copy from file-format struct to runtime prefs
+    _prefs->airtime_factor = fp.airtime_factor;
+    memcpy(_prefs->node_name, fp.node_name, sizeof(_prefs->node_name));
+    _prefs->node_lat = fp.node_lat;
+    _prefs->node_lon = fp.node_lon;
+    memcpy(_prefs->password, fp.password, sizeof(_prefs->password));
+    _prefs->freq = fp.freq;
+    _prefs->tx_power_dbm = fp.tx_power_dbm;
+    _prefs->disable_fwd = fp.disable_fwd;
+    _prefs->advert_interval = fp.advert_interval;
+    _prefs->rx_delay_base = fp.rx_delay_base;
+    _prefs->tx_delay_factor = fp.tx_delay_factor;
+    memcpy(_prefs->guest_password, fp.guest_password, sizeof(_prefs->guest_password));
+    _prefs->direct_tx_delay_factor = fp.direct_tx_delay_factor;
+    _prefs->sf = fp.sf;
+    _prefs->cr = fp.cr;
+    _prefs->allow_read_only = fp.allow_read_only;
+    _prefs->multi_acks = fp.multi_acks;
+    _prefs->bw = fp.bw;
+    _prefs->agc_reset_interval = fp.agc_reset_interval;
+    _prefs->flood_max = fp.flood_max;
+    _prefs->flood_advert_interval = fp.flood_advert_interval;
+    _prefs->interference_threshold = fp.interference_threshold;
+    _prefs->bridge_enabled = fp.bridge_enabled;
+    _prefs->bridge_delay = fp.bridge_delay;
+    _prefs->bridge_pkt_src = fp.bridge_pkt_src;
+    _prefs->bridge_baud = fp.bridge_baud;
+    _prefs->bridge_channel = fp.bridge_channel;
+    memcpy(_prefs->bridge_secret, fp.bridge_secret, sizeof(_prefs->bridge_secret));
+    _prefs->gps_enabled = fp.gps_enabled;
+    _prefs->gps_interval = fp.gps_interval;
+    _prefs->advert_loc_policy = fp.advert_loc_policy;
+    _prefs->discovery_mod_timestamp = fp.discovery_mod_timestamp;
+    _prefs->adc_multiplier = fp.adc_multiplier;
 
     // sanitise bad pref values
     _prefs->rx_delay_base = constrain(_prefs->rx_delay_base, 0, 20.0f);
@@ -110,49 +153,43 @@ void CommonCLI::savePrefs(FILESYSTEM* fs) {
   File file = fs->open("/com_prefs", "w", true);
 #endif
   if (file) {
-    uint8_t pad[8];
-    memset(pad, 0, sizeof(pad));
+    // Build the file-format struct from runtime prefs
+    NodePrefsFile fp = {};  // zero-initialize (handles padding)
+    fp.airtime_factor = _prefs->airtime_factor;
+    memcpy(fp.node_name, _prefs->node_name, sizeof(fp.node_name));
+    fp.node_lat = _prefs->node_lat;
+    fp.node_lon = _prefs->node_lon;
+    memcpy(fp.password, _prefs->password, sizeof(fp.password));
+    fp.freq = _prefs->freq;
+    fp.tx_power_dbm = _prefs->tx_power_dbm;
+    fp.disable_fwd = _prefs->disable_fwd;
+    fp.advert_interval = _prefs->advert_interval;
+    fp.rx_delay_base = _prefs->rx_delay_base;
+    fp.tx_delay_factor = _prefs->tx_delay_factor;
+    memcpy(fp.guest_password, _prefs->guest_password, sizeof(fp.guest_password));
+    fp.direct_tx_delay_factor = _prefs->direct_tx_delay_factor;
+    fp.sf = _prefs->sf;
+    fp.cr = _prefs->cr;
+    fp.allow_read_only = _prefs->allow_read_only;
+    fp.multi_acks = _prefs->multi_acks;
+    fp.bw = _prefs->bw;
+    fp.agc_reset_interval = _prefs->agc_reset_interval;
+    fp.flood_max = _prefs->flood_max;
+    fp.flood_advert_interval = _prefs->flood_advert_interval;
+    fp.interference_threshold = _prefs->interference_threshold;
+    fp.bridge_enabled = _prefs->bridge_enabled;
+    fp.bridge_delay = _prefs->bridge_delay;
+    fp.bridge_pkt_src = _prefs->bridge_pkt_src;
+    fp.bridge_baud = _prefs->bridge_baud;
+    fp.bridge_channel = _prefs->bridge_channel;
+    memcpy(fp.bridge_secret, _prefs->bridge_secret, sizeof(fp.bridge_secret));
+    fp.gps_enabled = _prefs->gps_enabled;
+    fp.gps_interval = _prefs->gps_interval;
+    fp.advert_loc_policy = _prefs->advert_loc_policy;
+    fp.discovery_mod_timestamp = _prefs->discovery_mod_timestamp;
+    fp.adc_multiplier = _prefs->adc_multiplier;
 
-    file.write((uint8_t *)&_prefs->airtime_factor, sizeof(_prefs->airtime_factor));    // 0
-    file.write((uint8_t *)&_prefs->node_name, sizeof(_prefs->node_name));              // 4
-    file.write(pad, 4);                                                                // 36
-    file.write((uint8_t *)&_prefs->node_lat, sizeof(_prefs->node_lat));                // 40
-    file.write((uint8_t *)&_prefs->node_lon, sizeof(_prefs->node_lon));                // 48
-    file.write((uint8_t *)&_prefs->password[0], sizeof(_prefs->password));             // 56
-    file.write((uint8_t *)&_prefs->freq, sizeof(_prefs->freq));                        // 72
-    file.write((uint8_t *)&_prefs->tx_power_dbm, sizeof(_prefs->tx_power_dbm));        // 76
-    file.write((uint8_t *)&_prefs->disable_fwd, sizeof(_prefs->disable_fwd));          // 77
-    file.write((uint8_t *)&_prefs->advert_interval, sizeof(_prefs->advert_interval));  // 78
-    file.write((uint8_t *)pad, 1);                                                     // 79  was 'unused'
-    file.write((uint8_t *)&_prefs->rx_delay_base, sizeof(_prefs->rx_delay_base));      // 80
-    file.write((uint8_t *)&_prefs->tx_delay_factor, sizeof(_prefs->tx_delay_factor));  // 84
-    file.write((uint8_t *)&_prefs->guest_password[0], sizeof(_prefs->guest_password)); // 88
-    file.write((uint8_t *)&_prefs->direct_tx_delay_factor, sizeof(_prefs->direct_tx_delay_factor)); // 104
-    file.write(pad, 4);                                                                             // 108
-    file.write((uint8_t *)&_prefs->sf, sizeof(_prefs->sf));                                         // 112
-    file.write((uint8_t *)&_prefs->cr, sizeof(_prefs->cr));                                         // 113
-    file.write((uint8_t *)&_prefs->allow_read_only, sizeof(_prefs->allow_read_only));               // 114
-    file.write((uint8_t *)&_prefs->multi_acks, sizeof(_prefs->multi_acks));                         // 115
-    file.write((uint8_t *)&_prefs->bw, sizeof(_prefs->bw));                                         // 116
-    file.write((uint8_t *)&_prefs->agc_reset_interval, sizeof(_prefs->agc_reset_interval));         // 120
-    file.write(pad, 3);                                                                             // 121
-    file.write((uint8_t *)&_prefs->flood_max, sizeof(_prefs->flood_max));                           // 124
-    file.write((uint8_t *)&_prefs->flood_advert_interval, sizeof(_prefs->flood_advert_interval));   // 125
-    file.write((uint8_t *)&_prefs->interference_threshold, sizeof(_prefs->interference_threshold)); // 126
-    file.write((uint8_t *)&_prefs->bridge_enabled, sizeof(_prefs->bridge_enabled));                 // 127
-    file.write((uint8_t *)&_prefs->bridge_delay, sizeof(_prefs->bridge_delay));                     // 128
-    file.write((uint8_t *)&_prefs->bridge_pkt_src, sizeof(_prefs->bridge_pkt_src));                 // 130
-    file.write((uint8_t *)&_prefs->bridge_baud, sizeof(_prefs->bridge_baud));                       // 131
-    file.write((uint8_t *)&_prefs->bridge_channel, sizeof(_prefs->bridge_channel));                 // 135
-    file.write((uint8_t *)&_prefs->bridge_secret, sizeof(_prefs->bridge_secret));                   // 136
-    file.write(pad, 4);                                                                             // 152
-    file.write((uint8_t *)&_prefs->gps_enabled, sizeof(_prefs->gps_enabled));                       // 156
-    file.write((uint8_t *)&_prefs->gps_interval, sizeof(_prefs->gps_interval));                     // 157
-    file.write((uint8_t *)&_prefs->advert_loc_policy, sizeof(_prefs->advert_loc_policy));           // 161
-    file.write((uint8_t *)&_prefs->discovery_mod_timestamp, sizeof(_prefs->discovery_mod_timestamp)); // 162
-    file.write((uint8_t *)&_prefs->adc_multiplier, sizeof(_prefs->adc_multiplier));                 // 166
-    // 170
-
+    file.write((uint8_t*)&fp, sizeof(fp));
     file.close();
   }
 }
